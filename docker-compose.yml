@@ -1,0 +1,19 @@
+version: '3'
+services:
+  ratelimit-app:
+    build: .
+    ports:
+      - "8080:8080"
+  redis:
+    image: redis:alpine
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis-data:/data
+  locust:
+    image: locustio/locust
+    ports:
+      - "8089:8089"
+    volumes:
+      - .:/mnt/locust
+    command: -f /mnt/locust/stress_test/locustfile.py --host http://ratelimit-app:8080
