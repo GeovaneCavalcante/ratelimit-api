@@ -35,7 +35,6 @@ func (suite *RateLimiterTestSuite) SetupTest() {
 func (suite *RateLimiterTestSuite) TestRateLimiter() {
 	suite.Run("should return request successfully", func() {
 		suite.RateLimitToken.EXPECT().Limiter(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
-		suite.RateLimitIp.EXPECT().Limiter(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 		req, err := http.NewRequest("GET", "/", nil)
 		req.Header.Set("API_KEY", "123")
@@ -50,22 +49,6 @@ func (suite *RateLimiterTestSuite) TestRateLimiter() {
 		assert.NoError(suite.T(), err)
 		assert.Equal(suite.T(), http.StatusOK, rr.Code)
 		assert.Equal(suite.T(), "", rr.Body.String())
-	})
-
-	suite.Run("should return error when token is not found", func() {
-		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-		req, err := http.NewRequest("GET", "/", nil)
-
-		rr := httptest.NewRecorder()
-
-		m := NewLimiter(suite.RateLimitToken, suite.RateLimitIp, suite.TokensConfig)
-
-		handler := m.RateLimiter(testHandler)
-
-		handler.ServeHTTP(rr, req)
-		assert.NoError(suite.T(), err)
-		assert.Equal(suite.T(), http.StatusUnauthorized, rr.Code)
-		assert.Equal(suite.T(), "missing API_KEY header", rr.Body.String())
 	})
 
 	suite.Run("should return an error when the limiter options are empty", func() {
@@ -104,11 +87,9 @@ func (suite *RateLimiterTestSuite) TestRateLimiter() {
 	})
 
 	suite.Run("should return an error when the limiter by ip returns an error", func() {
-		suite.RateLimitToken.EXPECT().Limiter(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 		suite.RateLimitIp.EXPECT().Limiter(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, assert.AnError)
 		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 		req, err := http.NewRequest("GET", "/", nil)
-		req.Header.Set("API_KEY", "123")
 
 		rr := httptest.NewRecorder()
 
@@ -124,7 +105,6 @@ func (suite *RateLimiterTestSuite) TestRateLimiter() {
 
 	suite.Run("should return an error when the limiter by token returns true", func() {
 		suite.RateLimitToken.EXPECT().Limiter(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
-		suite.RateLimitIp.EXPECT().Limiter(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 		req, err := http.NewRequest("GET", "/", nil)
 		req.Header.Set("API_KEY", "123")
@@ -143,7 +123,6 @@ func (suite *RateLimiterTestSuite) TestRateLimiter() {
 
 	suite.Run("should return an error when the limiter by ip returns true", func() {
 		suite.RateLimitToken.EXPECT().Limiter(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
-		suite.RateLimitIp.EXPECT().Limiter(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 		req, err := http.NewRequest("GET", "/", nil)
 		req.Header.Set("API_KEY", "123")

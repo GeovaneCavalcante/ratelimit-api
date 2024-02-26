@@ -26,6 +26,12 @@ Exemplo:
 TOKENS_CONFIG_LIMIT=[{"token": "5095bc00-2f9e-4e6f-b355-11688d20530d", "max_requests": 30, "block_time_seconds": 60}, {"token": "eeec68b2-f1b9-4adc-813a-4cbade5d5387", "max_requests": 5, "block_time_seconds": 1800}]
 IP_CONFIG_LIMIT={"max_requests": 30, "block_time_seconds": 60}
 ```
+### Alterar persistência 
+O rate limiter utiliza redis como storage e que permite viabilizar uma `stragegy` que empilha eventos e com base nos mesmo é implementado a regra de negócio com base nas políticas de acesso. Caso queira trocar a persistência e utilizar outra ferramenta é necessário fazer a implementação da interface `EventStorageInterface` que está contida no diretório `pkg/ratelimit/event.go`. 
+
+O pacote `ratelimit` depende de uma implementação dessa interface com regras de persistência para empilhar eventos. A implementação deve ser passada na inicialização no arquivo `cmd/server.go`.
+
+
 
 ## Construção e Execução
 Para construir a imagem da aplicação, utilize:
@@ -62,6 +68,9 @@ Endereço do Locust: `http://localhost:8089`
 Localizados em: `stress_test/results`
 
 Configurações do teste:
+
+Caso 1
+
 - 10 usuários
 - Spawn rate: 1 usuário/segundo
 - Duração do teste: 3 minutos
@@ -69,10 +78,24 @@ Configurações do teste:
 - Configurado a permissão 30 requisições em um intervalo de 1 minuto para token.
 
 
-Resultados:
-- Número de requests: 237488
-- Requests com falha: 237398
+Resultados caso 1:
+- Número de requests: 117014
+- Requests com falha: 116924
 - Requests com sucesso: 90
+
+
+Caso 2
+- 10 usuários
+- Spawn rate: 1 usuário/segundo
+- Duração do teste: 3 minutos
+- IP definido e usado nas requisições: `192.168.9.9`
+- Configurado a permissão 20 requisições em um intervalo de 1 minuto para token.
+
+Resultados caso 2:
+- Número de requests: 117439
+- Requests com falha: 117379
+- Requests com sucesso: 60
+
 
 ### Executando Novos Testes
 Para realizar novos testes de carga, siga estas etapas:

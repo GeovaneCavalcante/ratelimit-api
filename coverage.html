@@ -57,7 +57,7 @@
 				
 				<option value="file0">github.com/GeovaneCavalcante/rate-limit-api/internal/infra/web/handlers/health.go (100.0%)</option>
 				
-				<option value="file1">github.com/GeovaneCavalcante/rate-limit-api/internal/infra/web/middlewares/ratelimit.go (100.0%)</option>
+				<option value="file1">github.com/GeovaneCavalcante/rate-limit-api/internal/infra/web/middlewares/ratelimit.go (86.0%)</option>
 				
 				<option value="file2">github.com/GeovaneCavalcante/rate-limit-api/pkg/ratelimit/ratelimit.go (100.0%)</option>
 				
@@ -89,7 +89,7 @@ func NewHealthHandler() *HealthHandler <span class="cov8" title="1">{
 }</span>
 
 func (h *HealthHandler) HealthHandler(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
-        logger.Info("[TemperatureByCepHandler] starting handler")
+        logger.Info("[HealthHandler] starting handler")
         w.Header().Set("Content-Type", "application/json")
         w.WriteHeader(http.StatusOK)
         w.Write([]byte(`{"status": "ok"}`))
@@ -125,32 +125,42 @@ func (l *Limiter) RateLimiter(next http.Handler) http.HandlerFunc <span class="c
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
 
                 token := r.Header.Get("API_KEY")
-                if token == "" </span><span class="cov8" title="1">{
-                        logger.Error("missing API_KEY header", nil)
-                        w.WriteHeader(http.StatusUnauthorized)
-                        w.Header().Set("Content-Type", "application/json")
-                        w.Write([]byte(`missing API_KEY header`))
-                        return
-                }</span>
+                ip := getIP(r)
 
-                <span class="cov8" title="1">tokenOptions := findOpionsByToken(l.TokensConfigLimit, token)
-                if tokenOptions == nil </span><span class="cov8" title="1">{
-                        logger.Error(fmt.Sprintf("token %s not found", token), nil)
-                        w.WriteHeader(http.StatusUnauthorized)
-                        w.Header().Set("Content-Type", "application/json")
-                        w.Write([]byte(`token not found`))
-                        return
-                }</span>
-                <span class="cov8" title="1">tokenLimiter, err := l.TokenLimiter.Limiter(r.Context(), token, tokenOptions)
-                if err != nil </span><span class="cov8" title="1">{
-                        logger.Error("error when executing the RateLimiter by token", err)
-                        w.WriteHeader(http.StatusInternalServerError)
-                        w.Header().Set("Content-Type", "application/json")
-                        w.Write([]byte(`error when executing the RateLimiter`))
-                        return
-                }</span>
-                <span class="cov8" title="1">ip := getIP(r)
-                ipLimiter, err := l.IPLimiter.Limiter(r.Context(), ip, nil)
+                if token != "" </span><span class="cov8" title="1">{
+
+                        tokenOptions := findOpionsByToken(l.TokensConfigLimit, token)
+                        if tokenOptions == nil </span><span class="cov8" title="1">{
+                                logger.Error(fmt.Sprintf("token %s not found", token), nil)
+                                w.WriteHeader(http.StatusUnauthorized)
+                                w.Header().Set("Content-Type", "application/json")
+                                w.Write([]byte(`token not found`))
+                                return
+                        }</span>
+                        <span class="cov8" title="1">tokenLimiter, err := l.TokenLimiter.Limiter(r.Context(), token, tokenOptions)
+                        if err != nil </span><span class="cov8" title="1">{
+                                logger.Error("error when executing the RateLimiter by token", err)
+                                w.WriteHeader(http.StatusInternalServerError)
+                                w.Header().Set("Content-Type", "application/json")
+                                w.Write([]byte(`error when executing the RateLimiter`))
+                                return
+                        }</span>
+
+                        <span class="cov8" title="1">if tokenLimiter </span><span class="cov8" title="1">{
+                                logger.Warn("TOKENLIMIT - you have reached the maximum number of requests or actions allowed within a certain time frame", nil)
+                                w.WriteHeader(http.StatusTooManyRequests)
+                                w.Header().Set("Content-Type", "application/json")
+                                w.Write([]byte(`you have reached the maximum number of requests or actions allowed within a certain time frame`))
+                                return
+                        }</span>
+                        <span class="cov8" title="1">if !tokenLimiter </span><span class="cov8" title="1">{
+                                next.ServeHTTP(w, r)
+                                return
+                        }</span>
+                }
+
+                <span class="cov8" title="1">ipLimiter, err := l.IPLimiter.Limiter(r.Context(), ip, nil)
+
                 if err != nil </span><span class="cov8" title="1">{
                         logger.Error("error when executing the RateLimiter by ip", err)
                         w.WriteHeader(http.StatusInternalServerError)
@@ -159,7 +169,7 @@ func (l *Limiter) RateLimiter(next http.Handler) http.HandlerFunc <span class="c
                         return
                 }</span>
 
-                <span class="cov8" title="1">if ipLimiter &amp;&amp; tokenLimiter </span><span class="cov8" title="1">{
+                <span class="cov0" title="0">if ipLimiter </span><span class="cov0" title="0">{
                         logger.Warn("IPLIMIT - you have reached the maximum number of requests or actions allowed within a certain time frame", nil)
                         w.WriteHeader(http.StatusTooManyRequests)
                         w.Header().Set("Content-Type", "application/json")
@@ -167,15 +177,7 @@ func (l *Limiter) RateLimiter(next http.Handler) http.HandlerFunc <span class="c
                         return
                 }</span>
 
-                <span class="cov8" title="1">if tokenLimiter </span><span class="cov8" title="1">{
-                        logger.Warn("TOKENLIMIT - you have reached the maximum number of requests or actions allowed within a certain time frame", nil)
-                        w.WriteHeader(http.StatusTooManyRequests)
-                        w.Header().Set("Content-Type", "application/json")
-                        w.Write([]byte(`you have reached the maximum number of requests or actions allowed within a certain time frame`))
-                        return
-                }</span>
-
-                <span class="cov8" title="1">next.ServeHTTP(w, r)</span>
+                <span class="cov0" title="0">next.ServeHTTP(w, r)</span>
         })
 }
 

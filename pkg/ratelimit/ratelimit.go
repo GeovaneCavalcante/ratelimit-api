@@ -111,6 +111,7 @@ func (rl *RateLimiter) Limiter(ctx context.Context, key string, opt *Options) (b
 	if err != nil {
 		return false, fmt.Errorf("error when removing expired events: %w", err)
 	}
+
 	return true, nil
 }
 
